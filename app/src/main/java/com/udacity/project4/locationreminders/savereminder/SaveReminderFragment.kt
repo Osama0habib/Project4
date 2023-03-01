@@ -16,8 +16,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
+import androidx.fragment.app.Fragment
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.material.snackbar.Snackbar
@@ -30,11 +32,12 @@ import com.udacity.project4.locationreminders.geofence.GeofenceBroadcastReceiver
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 
 
 class SaveReminderFragment : BaseFragment() {
     //Get the view model this time as a single to be shared with the another fragment
-    override val _viewModel: SaveReminderViewModel by inject()
+    override val _viewModel: SaveReminderViewModel by sharedViewModel()
     private lateinit var binding: FragmentSaveReminderBinding
     lateinit var geofencingClient: GeofencingClient
     private lateinit var reminderData : ReminderDataItem
@@ -56,6 +59,8 @@ class SaveReminderFragment : BaseFragment() {
 
         binding.viewModel = _viewModel
 
+        binding.lifecycleOwner = this
+
         return binding.root
     }
 
@@ -75,7 +80,6 @@ class SaveReminderFragment : BaseFragment() {
             val latitude = _viewModel.latitude.value
             val longitude = _viewModel.longitude.value
             reminderData = ReminderDataItem(title =title, description = description , latitude = latitude, longitude = longitude , location = location)
-            _viewModel.validateAndSaveReminder(reminderData)
             requestForegroundAndBackgroundLocationPermissions()
 
 //            TODO: use the user entered reminder details to:
@@ -178,8 +182,9 @@ class SaveReminderFragment : BaseFragment() {
         locationSettingsResponseTask.addOnFailureListener { exception ->
             if (exception is ResolvableApiException && resolve){
                 try {
-                    exception.startResolutionForResult(this.requireActivity(),
-                        REQUEST_TURN_DEVICE_LOCATION_ON)
+//                    exception.startResolutionForResult(this.requireActivity(),
+//                        REQUEST_TURN_DEVICE_LOCATION_ON)
+                    this.startIntentSenderForResult(exception.getResolution().getIntentSender(),REQUEST_TURN_DEVICE_LOCATION_ON, null, 0, 0, 0, null)
                 } catch (sendEx: IntentSender.SendIntentException) {
                     Log.d(TAG, "Error getting location settings resolution: " + sendEx.message)
                 }
@@ -215,32 +220,17 @@ class SaveReminderFragment : BaseFragment() {
 //                    PendingIntent.getBroadcast(_viewModel.app, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
                 }
                 geofencingClient.addGeofences(geofencingRequest,geofencePendingIntent).run {
-                    addOnCompleteListener {
-                        println(it.isSuccessful)
-                        println("addgeofence on complete")
-
+                    addOnSuccessListener {
+                        Log.d(TAG, "Location added!!!")
+                        _viewModel.validateAndSaveReminder(reminderData)
+                        // save reminder to local db
                     }
                     addOnFailureListener {
+                        Toast.makeText(context, "Failed to add location!!! Try again later!", Toast.LENGTH_SHORT).show()
                         println("geo fences fails")
                     }
                 }
-//                geofencingClient.removeGeofences(geofencePendingIntent)?.run {
-//                    addOnCompleteListener {
-//                        geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)?.run {
-//                            addOnSuccessListener {
-//                                _viewModel.showToast.value = "added"
-////                                Log.e("Add Geofence", geofence.requestId)
-////                                viewModel.geofenceActivated()
-//                            }
-//                            addOnFailureListener {
-//                                _viewModel.showToast.value = R.string.geofences_not_added.toString()
-//                                if ((it.message != null)) {
-//                                    Log.w(TAG, it.message!!)
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
+
             }
         }
     }

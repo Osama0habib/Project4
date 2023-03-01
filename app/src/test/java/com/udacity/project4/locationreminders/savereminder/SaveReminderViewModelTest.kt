@@ -88,12 +88,21 @@ class SaveReminderViewModelTest : AutoCloseKoinTest(){
 
         assertThat(saveReminderViewModel.showLoading.getOrAwaitValue(),`is`(true))
 
+
         mainCoroutineRule.resumeDispatcher()
 
         assertThat(saveReminderViewModel.showLoading.getOrAwaitValue(),`is`(false))
 
     }
 
+    @Test
+    fun validateData_shouldReturnError(){
+        val reminder = ReminderDataItem("Title", "Description",null,30.00,30.00)
+        val result = saveReminderViewModel.validateEnteredData(reminder)
+
+
+        assertThat(result,`is`(false))
+    }
 
     @Test
     fun saveReminder_showToast_navigate() = mainCoroutineRule.runBlockingTest{
@@ -107,6 +116,8 @@ class SaveReminderViewModelTest : AutoCloseKoinTest(){
 
 
     //TODO: provide testing to the SaveReminderView and its live data objects
+
+
 
 
 }

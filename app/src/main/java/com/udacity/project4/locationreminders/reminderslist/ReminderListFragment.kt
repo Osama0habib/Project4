@@ -26,6 +26,8 @@ class ReminderListFragment : BaseFragment() {
                 R.layout.fragment_reminders, container, false
             )
         binding.viewModel = _viewModel
+        binding.lifecycleOwner = this
+
 
         setHasOptionsMenu(true)
         setDisplayHomeAsUpEnabled(false)

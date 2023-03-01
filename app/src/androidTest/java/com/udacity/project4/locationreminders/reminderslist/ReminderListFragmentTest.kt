@@ -24,7 +24,6 @@ import com.udacity.project4.locationreminders.data.local.LocalDB
 import com.udacity.project4.locationreminders.data.local.RemindersDao
 import com.udacity.project4.locationreminders.data.local.RemindersDaoTest
 import com.udacity.project4.locationreminders.data.local.RemindersLocalRepository
-import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.util.DataBindingIdlingResource
 import com.udacity.project4.util.monitorActivity
 import com.udacity.project4.util.monitorFragment
@@ -146,4 +145,6 @@ class ReminderListFragmentTest : AutoCloseKoinTest() {
 
         onView(withId(R.id.noDataTextView)).check(matches(isDisplayed()))
     }
+
+
 }

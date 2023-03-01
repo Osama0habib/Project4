@@ -4,6 +4,7 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
@@ -37,27 +38,29 @@ import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 //import kotlinx.android.synthetic.main.activity_reminders.*
 import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 import java.util.*
 
-class SelectLocationFragment : BaseFragment(), OnMapReadyCallback{
+class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     //Use Koin to get the view model of the SaveReminder
-    override val _viewModel: SaveReminderViewModel by inject()
+    override val _viewModel: SaveReminderViewModel by sharedViewModel()
     private lateinit var binding: FragmentSelectLocationBinding
     private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val REQUEST_LOCATION_PERMISSION = 1
-    var currentMarker : Marker? = null
-    var pioMarker : Marker? = null
+    var currentMarker: Marker? = null
+    var pioMarker: Marker? = null
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?,
     ): View {
         binding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_select_location, container, false)
         val mapFragment = childFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this.requireActivity())
+        fusedLocationClient =
+            LocationServices.getFusedLocationProviderClient(this.requireActivity())
 
         binding.viewModel = _viewModel
         binding.lifecycleOwner = this
@@ -84,15 +87,21 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback{
 
     private fun onLocationSelected() {
         //        TODO: When the user confirms on the selected location,
-        if(currentMarker == null && pioMarker == null){
-            Toast.makeText(context,"You should select a place",Toast.LENGTH_SHORT).show()
-        }else{
+        if (currentMarker == null && pioMarker == null) {
+            Toast.makeText(context, R.string.select_location, Toast.LENGTH_SHORT).show()
+        } else {
             currentMarker.let {
                 _viewModel.latitude.value = it?.position?.latitude
                 _viewModel.longitude.value = it?.position?.longitude
             }
             pioMarker.let {
-                _viewModel.selectedPOI.value = pioMarker?.position?.let { it1 -> PointOfInterest(it1,pioMarker?.title.toString(),pioMarker?.snippet.toString()) }
+                _viewModel.selectedPOI.value = pioMarker?.position?.let { it1 ->
+                    PointOfInterest(
+                        it1,
+                        pioMarker?.title.toString(),
+                        pioMarker?.snippet.toString()
+                    )
+                }
             }
             view?.findNavController()?.navigateUp()
 
@@ -147,32 +156,63 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback{
 //        }
 //    }
 
-    private fun isPermissionGranted() : Boolean {
-        println("isPermissionGranted")
-//        return ContextCompat.checkSelfPermission(this.requireContext(),Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        return !(ContextCompat.checkSelfPermission(
-            this.requireContext(),
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
-            this.requireContext(),
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        ) != PackageManager.PERMISSION_GRANTED)
+//    private fun isPermissionGranted(): Boolean {
+//        println("isPermissionGranted")
+////        return ContextCompat.checkSelfPermission(this.requireContext(),Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+//        return !(ContextCompat.checkSelfPermission(
+//            this.requireContext(),
+//            Manifest.permission.ACCESS_FINE_LOCATION
+//        ) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+//            this.requireContext(),
+//            Manifest.permission.ACCESS_COARSE_LOCATION
+//        ) != PackageManager.PERMISSION_GRANTED)
+//    }
+
+    private fun enableMyLocation() {
+        println("enable my location ")
+            if (ContextCompat.checkSelfPermission(
+                    this.requireContext(),
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                    this.requireContext(),
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                // TODO: Consider calling
+                requestPermissions(
+                    arrayOf<String>(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ),
+                    REQUEST_LOCATION_PERMISSION
+                )
+
+
+            }else{
+                getLastLocation {
+                        location ->
+                    myLocationMarker(map,location)
+
+                }
+
+            }
     }
 
-    @SuppressLint("MissingPermission")
-    private fun enableMyLocation(){
-        println("enableMyLocation")
-        if(isPermissionGranted()){
-            map.isMyLocationEnabled = true
-            myLocationMarker(map)
-        }else{
-            println("request Permission")
-            requestPermissions(
-                arrayOf<String>(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION),
-                REQUEST_LOCATION_PERMISSION
-            )
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray) {
+        // Check if location permissions are granted and if so enable the
+        // location data layer.
+        super.onRequestPermissionsResult(requestCode,permissions,grantResults)
+        println("on request permission result")
+        if (requestCode == REQUEST_LOCATION_PERMISSION) {
+            if (grantResults.size > 0 && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                enableMyLocation()
+            }else{
+                Toast.makeText(context, "location permission denied", Toast.LENGTH_SHORT).show()
+            }
         }
-
     }
 
     private fun setMapLongClick(map: GoogleMap) {
@@ -188,7 +228,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback{
             _viewModel.latitude.value = latLng.latitude
             _viewModel.longitude.value = latLng.longitude
             _viewModel.reminderSelectedLocationStr.value = "${latLng.latitude} ${latLng.longitude}"
-          currentMarker =  map.addMarker(
+            currentMarker = map.addMarker(
                 MarkerOptions()
                     .position(latLng)
                     .title(getString(R.string.dropped_pin))
@@ -213,24 +253,113 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback{
 
         setMapLongClick(map)
         setPoiClick(map)
+        setMapStyle(map)
         enableMyLocation()
-        myLocationMarker(map)
+//        myLocationMarker(map)
+
+
 
     }
+
     @SuppressLint("MissingPermission")
-    private fun myLocationMarker(map: GoogleMap){
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location: Location? ->
-                val mylatLng = location?.let { LatLng(it.latitude, location.longitude) }
-                mylatLng?.let { CameraUpdateFactory.newLatLngZoom(it, 15f) }
-                    ?.let { map.moveCamera(it) }
-                mylatLng?.let { MarkerOptions().position(it).title("Me") }
-                    ?.let { map.addMarker(it) }
+    private fun myLocationMarker(map: GoogleMap,location : Location) {
+        println("my location Marker")
+        map.isMyLocationEnabled = true
+        val mylatLng = LatLng(location.latitude, location.longitude)
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(mylatLng,15f))
+
+//        if (ActivityCompat.checkSelfPermission(
+//                this.requireContext(),
+//                Manifest.permission.ACCESS_FINE_LOCATION
+//            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+//                this.requireContext(),
+//                Manifest.permission.ACCESS_COARSE_LOCATION
+//            ) != PackageManager.PERMISSION_GRANTED
+//        ) {
+//            // TODO: Consider calling
+//            //    ActivityCompat#requestPermissions
+//            ActivityCompat.requestPermissions(
+//                this.requireActivity(),
+//                arrayOf<String>(
+//                    Manifest.permission.ACCESS_FINE_LOCATION,
+//                    Manifest.permission.ACCESS_COARSE_LOCATION
+//                ),
+//                REQUEST_LOCATION_PERMISSION
+//            )
+//
+//
+//            // here to request the missing permissions, and then overriding
+//            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//            //                                          int[] grantResults)
+//            // to handle the case where the user grants the permission. See the documentation
+//            // for ActivityCompat#requestPermissions for more details.
+//            return
+//        }
+//        fusedLocationClient.lastLocation
+//            .addOnSuccessListener { location: Location? ->
+//                map.isMyLocationEnabled = true
+//                val mylatLng = location?.let { LatLng(it.latitude, location.longitude) }
+//                mylatLng?.let { CameraUpdateFactory.newLatLngZoom(it, 15f) }
+//                    ?.let { map.moveCamera(it) }
+//                mylatLng?.let { MarkerOptions().position(it).title("Me") }
+//                    ?.let { map.addMarker(it) }
+//            }
+//        fusedLocationClient.lastLocation.addOnFailureListener {
+//            myLocationMarker(map)
+//        }
+    }
+
+    private fun setMapStyle(map: GoogleMap) {
+
+        try {
+            val success =
+                map.setMapStyle(MapStyleOptions.loadRawResourceStyle(this.requireContext(), R.raw.map_style))
+
+            if(!success){
+                Log.e(ContentValues.TAG,"Style Parsing Failed")
             }
-        fusedLocationClient.lastLocation.addOnFailureListener {
-            myLocationMarker(map)
+        }
+        catch (e :Resources.NotFoundException) {
+            Log.e(ContentValues.TAG,"Can't find style. Error : ",e)
+
         }
     }
 
+
+    @SuppressLint("MissingPermission")
+    fun getLastLocation(locationListener: (Location) -> Unit){
+        println("get last location")
+        fusedLocationClient.lastLocation.addOnCompleteListener {
+            println(it.result)
+            val location = it.result
+            if(location == null){
+                requestNewLocation(locationListener)
+            }else{
+                locationListener.invoke(location)
+            }
+        }
+    }
+    @SuppressLint("MissingPermission")
+    private fun requestNewLocation(locationListener: (Location) -> Unit){
+        println("requestNewLocation")
+        val locationCallback : LocationCallback = object : LocationCallback() {
+            override fun onLocationResult(p0: LocationResult) {
+                super.onLocationResult(p0)
+                println("onlocationResult : ${p0.lastLocation}")
+                locationListener.invoke(p0.lastLocation)
+            }
+
+        }
+
+        with(LocationRequest()){
+            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            interval = 0
+            fastestInterval = 0
+            numUpdates = 1
+            Looper.myLooper()
+                ?.let { fusedLocationClient.requestLocationUpdates(this,locationCallback, it) }
+        }
+
+    }
 
 }

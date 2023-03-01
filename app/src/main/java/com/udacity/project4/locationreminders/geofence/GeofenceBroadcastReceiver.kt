@@ -21,7 +21,6 @@ import com.udacity.project4.locationreminders.data.local.LocalDB
 import com.udacity.project4.locationreminders.data.local.RemindersLocalRepository
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.locationreminders.reminderslist.RemindersListViewModel
-import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.sendNotification
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -82,14 +81,16 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         if (geofencingEvent.geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
             val fenceId = when {
                 geofencingEvent.triggeringGeofences.isNotEmpty() ->
-                    geofencingEvent.triggeringGeofences[0].requestId
+                    geofencingEvent.triggeringGeofences.forEach {
+                        val koinHelper = KoinHelper()
+                        koinHelper.getReminder(it.requestId,context)
+                    }
                 else -> {
                     Log.e(TAG, "No Geofence Trigger Found! Abort mission!")
                     return
                 }
             }
-            val koinHelper = KoinHelper()
-           koinHelper.getReminder(fenceId,context)
+
 
 
 

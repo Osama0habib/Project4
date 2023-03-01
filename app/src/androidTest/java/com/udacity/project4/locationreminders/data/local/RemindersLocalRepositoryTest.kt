@@ -23,6 +23,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.test.runTest
+import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.MatcherAssert.assertThat
 
 import org.hamcrest.core.IsEqual
 import org.junit.*
@@ -34,6 +36,7 @@ import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
 import org.koin.test.get
 import java.util.concurrent.Executors
+import java.util.function.Predicate.isEqual
 
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
@@ -98,6 +101,13 @@ class RemindersLocalRepositoryTest {
 
         Assert.assertThat(reminderTest.data, IsEqual(reminder2))
 
+    }
+
+    @Test
+    fun getReminderById_throwException() = runBlocking {
+        val reminderTest  = reminderRepository.getReminder(reminder2.id) as Result
+
+        Assert.assertThat(reminderTest, `is`(Result.Error("Reminder not found!")))
     }
 
 }

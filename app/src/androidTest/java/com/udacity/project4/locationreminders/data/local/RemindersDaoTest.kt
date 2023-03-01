@@ -74,4 +74,10 @@ class RemindersDaoTest {
 
     }
 
+    fun dataNotFoundError()= runBlockingTest {
+
+        database.reminderDao().getReminderById("anything")
+
+    }
+
 }
